@@ -1,6 +1,7 @@
 package com.example.air.controller;
 
 import com.example.air.entity.Frame1;
+import com.example.air.entity.Frame2;
 import com.example.air.service.Frame1Service;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/frame1")
@@ -16,12 +18,17 @@ import java.util.List;
 public class Frame1Controller {
     @Autowired
     private final Frame1Service frame1service;
-   /* @PostMapping("/add")
+    @PostMapping("/add")
     public String addFrameOne(@RequestBody Frame1 frame){
-        frame1service.addFrameOne(frame);
-        System.out.println("frame one "+ frame);
-        return "frame saved successufully! "+frame ;
-    }*/
+        frame1service.addFrameOne(frame.getCO2(), frame.getHCHO(), frame.getTVOC());
+        return "frame saved successufully! " ;
+    }
+    @GetMapping("/latest")
+    public Frame1 getLatestFrame(){
+        Frame1 latestFrame = frame1service.getLatestFrame1();
+        System.out.println("Latest Frame: " + latestFrame);
+        return  latestFrame;
+    }
 
     @GetMapping
     public List<Frame1> fetchAllFrameone(){

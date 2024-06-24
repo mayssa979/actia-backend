@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketHandler;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,19 +22,18 @@ public class Frame1Service {
     @Autowired
     private EmailService emailService;
 
-  /*  public Frame1 addFrameOne(Frame1 frame){
-        System.out.println("frameeeeeeee one "+ frame);
-        return frame1Repository.save(frame);
-    }*/
 
     public void addFrameOne(int co2Value, int hchoValue, int tvocValue) {
         Frame1 frame = new Frame1();
         frame.setCO2(co2Value);
         frame.setHCHO(hchoValue);
         frame.setTVOC(tvocValue);
+        frame.setDate(new Date());
         frame1Repository.save(frame);
     }
-
+    public Frame1 getLatestFrame1() {
+        return frame1Repository.findTopByOrderByDateDesc();
+    }
     public List<Frame1> getAllFrameone() {
         return frame1Repository.findAll();
     }
@@ -43,12 +43,12 @@ public class Frame1Service {
     }
 
     public String deleteFrame1(String id) {
-        Optional<Frame1> frame1 = frame1Repository.findById(id);
-        if (frame1.isPresent()) {
-            return "frame deleted successufully with id:  " + id;
-
-        } else {
+        Frame1 frame1 = frame1Repository.findById(id).orElse(null);
+        if (frame1 == null) {
             return "this frame does not exsist!";
+        } else {
+            frame1Repository.delete(frame1);
+            return "frame deleted successufully with id:  " + id;
         }
     }
 
@@ -68,13 +68,13 @@ public class Frame1Service {
 
         if (!newData.isEmpty()) {
             System.out.println("New data: " + newData);
-            checkCO2(newData);
+           // checkCO2(newData);
         }
 
         latestData = currentData;
     }
 
-    private void checkCO2(List<Frame1> data) {
+   /* private void checkCO2(List<Frame1> data) {
         for (Frame1 frame : data) {
             if (frame.getCO2() > 1400) {
                 EmailRequest emailRequest = new EmailRequest();
@@ -83,5 +83,7 @@ public class Frame1Service {
                 emailService.sendEmail(emailRequest);
             }
         }
-    }
+    }*/
+
+
 }

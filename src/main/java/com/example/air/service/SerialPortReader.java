@@ -14,9 +14,12 @@ public class SerialPortReader {
     private StringBuilder receivedDataBuffer = new StringBuilder(); // Buffer to store received data
     private final Frame1Service frame1Service;
     private final Frame2Service frame2Service;
-    public SerialPortReader(Frame1Service frame1Service, Frame2Service frame2Service) {
+    private final EmailService emailService ;
+    public SerialPortReader(Frame1Service frame1Service, Frame2Service frame2Service, EmailService emailService) {
         this.frame1Service = frame1Service;
         this.frame2Service = frame2Service;
+        this.emailService = emailService;
+
     }
 
     private int co2Value = 0;
@@ -26,16 +29,12 @@ public class SerialPortReader {
     private int humValue = 0;
     @PostConstruct
     public void init() {
-        SerialPort comPort = SerialPort.getCommPort("COM9"); // Change to your COM port
-        comPort.setBaudRate(115200); // Ensure this matches your Arduino baud rate
-
-        // Debugging: List all available ports
+        SerialPort comPort = SerialPort.getCommPort("COM9");
+        comPort.setBaudRate(115200);
         SerialPort[] ports = SerialPort.getCommPorts();
         for (SerialPort port : ports) {
             System.out.println("Available port: " + port.getSystemPortName());
         }
-
-        // Debugging: Attempt to open the port
         System.out.println("Attempting to open port: " + comPort.getSystemPortName());
         if (comPort.openPort()) {
             System.out.println("Port opened successfully.");
@@ -43,7 +42,6 @@ public class SerialPortReader {
             System.err.println("Failed to open port!");
             return;
         }
-
         comPort.addDataListener(new SerialPortDataListener() {
             @Override
             public int getListeningEvents() {
@@ -58,7 +56,7 @@ public class SerialPortReader {
                 byte[] newData = new byte[comPort.bytesAvailable()];
                 comPort.readBytes(newData, newData.length);
 
-                String receivedData = new String(newData, StandardCharsets.UTF_8); // Assuming UTF-8 encoding
+                String receivedData = new String(newData, StandardCharsets.UTF_8);
 
                 // Append received data to the buffer
                 receivedDataBuffer.append(receivedData);
@@ -77,16 +75,17 @@ public class SerialPortReader {
         });
     }
     private void extractValues (String data) {
-        // Check if the received data contains the CO2 value
         if (data.contains("CO2 value:")) {
-            // Extract the CO2 value from the received data
             String[] parts = data.split(":");
             if (parts.length >= 2) {
                 String co2ValueStr = parts[1].trim();
                  co2Value = Integer.parseInt(co2ValueStr);
-                // Store the CO2 value in the database or perform any other action
-              //  System.out.println("CO2 value extracted: " + co2Value);
-                // Add your database storage logic here
+                 if (co2Value > 1000){
+                     EmailRequest emailRequest = new EmailRequest();
+                     emailRequest.setTo("mayssa.bensalah@etudiant-isi.utm.tn");
+                     emailRequest.setBody("The gas level has exceeded the threshold. Current level: " + co2Value);
+                     emailService.sendEmail(emailRequest);
+                 }
             } else {
                 System.err.println("Invalid data format: " + data);
             }
@@ -95,9 +94,6 @@ public class SerialPortReader {
             if (parts.length >= 2) {
                 String hchoValueStr = parts[1].trim();
                  hchoValue = Integer.parseInt(hchoValueStr);
-                // Store the CO2 value in the database or perform any other action
-             //   System.out.println("hcho value extracted: " + hchoValue);
-                // Add your database storage logic here
             } else {
                 System.err.println("Invalid data format: " + data);
             }
@@ -106,39 +102,14 @@ public class SerialPortReader {
             if (parts.length >= 2) {
                 String tvocValueStr = parts[1].trim();
                  tvocValue = Integer.parseInt(tvocValueStr);
-                // Store the CO2 value in the database or perform any other action
-               // System.out.println("TVOC value extracted: " + tvocValue);
-                // Add your database storage logic here
             } else {
                 System.err.println("Invalid data format: " + data);
             }
-      /*  if (data.contains("CO2 value:") && data.contains("HCHO value:") && data.contains("TVOC value:")) {
-            String[] parts = data.split(":");
-            if (parts.length >= 2) {
-                String co2ValueStr  = parts[1].trim();
-                String hchoValueStr  = parts[2].trim();
-                String tvocValueStr  = parts[3].trim();
-
-                try {
-                    int co2Value = Integer.parseInt(co2ValueStr);
-                    int hchoValue = Integer.parseInt(hchoValueStr);
-                    int tvocValue = Integer.parseInt(tvocValueStr);
-                    System.out.println("data stored successufully !"+ co2Value+ " "+ hchoValue+ " "+ tvocValue );
-                    // Store the values in the database using the service method
-                    frame1Service.addFrameOne(co2Value, hchoValue, tvocValue);
-
-                } catch (NumberFormatException e) {
-                    System.err.println("Invalid number format in received data");
-                }
-            }*/
         } else if (data.contains("Temperature value:")) {
             String[] parts = data.split(":");
             if (parts.length >= 2) {
                 String tempValueStr = parts[1].trim();
                 tempValue = Integer.parseInt(tempValueStr);
-                // Store the CO2 value in the database or perform any other action
-              //  System.out.println("Temperature value extracted: " + tempValue);
-                // Add your database storage logic here
             } else {
                 System.err.println("Invalid data format: " + data);
             }
@@ -147,9 +118,6 @@ public class SerialPortReader {
             if (parts.length >= 2) {
                 String humValueStr = parts[1].trim();
                 humValue = Integer.parseInt(humValueStr);
-                // Store the CO2 value in the database or perform any other action
-              //  System.out.println("Temperature value extracted: " + humValue);
-                // Add your database storage logic here
             } else {
                 System.err.println("Invalid data format: " + data);
             }
@@ -162,6 +130,7 @@ public class SerialPortReader {
         extractValues(data);
         if (co2Value !=0 && hchoValue !=0 && tvocValue !=0){
             frame1Service.addFrameOne(co2Value, hchoValue, tvocValue);
+
         } else if (tempValue !=0 && humValue!=0) {
             frame2Service.addFrametwo(humValue, tempValue);
 
