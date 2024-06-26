@@ -21,7 +21,7 @@ public class Frame2Controller {
 
     @PostMapping("/add")
     public String addFrameOne(@RequestBody Frame2 frame){
-        frame2service.addFrameTwo(frame.getTemp(), frame.getHumidity());
+        frame2service.addFrametwo(frame.getTemp(), frame.getHumidity());
         return "frame saved successufully! " ;
     }
     @GetMapping

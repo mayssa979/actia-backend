@@ -80,10 +80,10 @@ public class SerialPortReader {
             if (parts.length >= 2) {
                 String co2ValueStr = parts[1].trim();
                  co2Value = Integer.parseInt(co2ValueStr);
-                 if (co2Value > 1000){
+                 if (co2Value > 1200){
                      EmailRequest emailRequest = new EmailRequest();
                      emailRequest.setTo("mayssa.bensalah@etudiant-isi.utm.tn");
-                     emailRequest.setBody("The gas level has exceeded the threshold. Current level: " + co2Value);
+                     emailRequest.setBody("The gas level has exceeded the threshold. Current level: " + co2ValueStr);
                      emailService.sendEmail(emailRequest);
                  }
             } else {
@@ -132,7 +132,7 @@ public class SerialPortReader {
             frame1Service.addFrameOne(co2Value, hchoValue, tvocValue);
 
         } else if (tempValue !=0 && humValue!=0) {
-            frame2Service.addFrametwo(humValue, tempValue);
+            frame2Service.addFrametwo(tempValue,humValue);
 
         }
 

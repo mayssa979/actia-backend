@@ -22,17 +22,11 @@ public class Frame2Service {
     private List<Frame2> latestData;
     @Autowired
     private EmailService emailService;
-    public void addFrametwo(int humidity, int temperature) {
-        Frame2 frame = new Frame2();
-        frame.setHumidity(humidity);
-        frame.setTemp(temperature);
-        frame2Repository.save(frame);
-    }
 
-    public void addFrameTwo(int temp, int humidity) {
+    public void addFrametwo(int tempValue, int humValue) {
         Frame2 frame = new Frame2();
-        frame.setTemp(temp);
-        frame.setHumidity(humidity);
+        frame.setTemp(tempValue);
+        frame.setHumidity(humValue);
         frame.setDate(new Date());
         frame2Repository.save(frame);
     }
