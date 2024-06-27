@@ -1,19 +1,14 @@
 package com.example.air.service;
 
-import com.example.air.entity.Frame1;
 import com.example.air.entity.Frame2;
-import com.example.air.repository.Frame1Repository;
 import com.example.air.repository.Frame2Repository;
-import com.example.air.webSocket.MyWebSocketHandler;
+import com.example.air.webSocket.Frame2WebSocketHandler;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -24,15 +19,15 @@ public class Frame2Service {
     @Autowired
     private EmailService emailService;
     @Autowired
-    private MyWebSocketHandler webSocketHandler;
+    private Frame2WebSocketHandler frame2WebSocketHandler;
     public void addFrametwo(int tempValue, int humValue) {
         Frame2 frame = new Frame2();
         frame.setTemp(tempValue);
         frame.setHumidity(humValue);
         frame.setDate(new Date());
         frame2Repository.save(frame);
-        // Notify WebSocket clients
-        webSocketHandler.notifyClients(frame);
+        // Notify WebSocket clients for Frame2
+        frame2WebSocketHandler.notifyClients(frame);
     }
 
     public List<Frame2> getAllFrames() {

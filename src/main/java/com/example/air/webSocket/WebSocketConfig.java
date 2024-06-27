@@ -1,5 +1,6 @@
 package com.example.air.webSocket;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -11,15 +12,19 @@ import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
+    @Autowired
+    private Frame1WebSocketHandler frame1WebSocketHandler;
+
+    @Autowired
+    private Frame2WebSocketHandler frame2WebSocketHandler;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(myWebSocketHandler(), "/websocket-endpoint")
+        registry.addHandler(frame1WebSocketHandler, "/websocket-frame1")
                 .setAllowedOrigins("*"); // Allow all origins, modify as needed
-    }
 
-    @Bean
-    public MyWebSocketHandler myWebSocketHandler() {
-        return new MyWebSocketHandler();
+        registry.addHandler(frame2WebSocketHandler, "/websocket-frame2")
+                .setAllowedOrigins("*"); // Allow all origins, modify as needed
     }
 
     @Bean
