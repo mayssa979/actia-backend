@@ -4,6 +4,7 @@ import com.example.air.entity.Frame1;
 import com.example.air.entity.Frame2;
 import com.example.air.repository.Frame1Repository;
 import com.example.air.repository.Frame2Repository;
+import com.example.air.webSocket.MyWebSocketHandler;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,13 +23,16 @@ public class Frame2Service {
     private List<Frame2> latestData;
     @Autowired
     private EmailService emailService;
-
+    @Autowired
+    private MyWebSocketHandler webSocketHandler;
     public void addFrametwo(int tempValue, int humValue) {
         Frame2 frame = new Frame2();
         frame.setTemp(tempValue);
         frame.setHumidity(humValue);
         frame.setDate(new Date());
         frame2Repository.save(frame);
+        // Notify WebSocket clients
+        webSocketHandler.notifyClients(frame);
     }
 
     public List<Frame2> getAllFrames() {

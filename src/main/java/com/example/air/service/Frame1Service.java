@@ -2,6 +2,7 @@ package com.example.air.service;
 
 import com.example.air.entity.Frame1;
 import com.example.air.repository.Frame1Repository;
+import com.example.air.webSocket.MyWebSocketHandler;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,7 +23,8 @@ public class Frame1Service {
     @Autowired
     private EmailService emailService;
 
-
+    @Autowired
+    private MyWebSocketHandler webSocketHandler;
     public void addFrameOne(int co2Value, int hchoValue, int tvocValue) {
         Frame1 frame = new Frame1();
         frame.setCO2(co2Value);
@@ -30,6 +32,8 @@ public class Frame1Service {
         frame.setTVOC(tvocValue);
         frame.setDate(new Date());
         frame1Repository.save(frame);
+        // Notify WebSocket clients
+        webSocketHandler.notifyClients(frame);
     }
     public Frame1 getLatestFrame1() {
         return frame1Repository.findTopByOrderByDateDesc();

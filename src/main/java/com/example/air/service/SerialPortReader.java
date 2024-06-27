@@ -131,6 +131,7 @@ public class SerialPortReader {
         if (co2Value !=0 && hchoValue !=0 && tvocValue !=0){
             frame1Service.addFrameOne(co2Value, hchoValue, tvocValue);
 
+
         } else if (tempValue !=0 && humValue!=0) {
             frame2Service.addFrametwo(tempValue,humValue);
 
