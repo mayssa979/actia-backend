@@ -50,37 +50,5 @@ public class Frame2Service {
         }
     }
 
-    /////////////////////////////////// get data after scheduled period///////////
-   /* @Scheduled(fixedRate = 10000) // Polling every 10 seconds (adjust as needed)
-    public void pollDatabase() {
-        List<Frame2> currentData = frame2Repository.findAll();
-
-        if (latestData == null) {
-            latestData = currentData;
-            return;
-        }
-
-        List<Frame2> newData = currentData.stream()
-                .filter(frame -> !latestData.contains(frame))
-                .collect(Collectors.toList());
-
-        if (!newData.isEmpty()) {
-            System.out.println("New data: " + newData);
-            checkCO2(newData);
-        }
-
-        latestData = currentData;
-    }
-
-    private void checkCO2(List<Frame1> data) {
-        for (Frame1 frame : data) {
-            if (frame.getCO2() > 1400) {
-                EmailRequest emailRequest = new EmailRequest();
-                emailRequest.setTo("mayssa.bensalah@etudiant-isi.utm.tn");
-                emailRequest.setBody("The gas level has exceeded the threshold. Current level: " + frame.getCO2());
-                emailService.sendEmail(emailRequest);
-            }
-        }
-    }*/
 
 }
