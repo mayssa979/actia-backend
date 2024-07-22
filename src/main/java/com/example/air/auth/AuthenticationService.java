@@ -4,13 +4,14 @@ import com.example.air.config.JwtService;
 import com.example.air.token.Token;
 import com.example.air.token.TokenRepository;
 import com.example.air.token.TokenType;
-import com.example.air.user.Role;
 import com.example.air.user.User;
 import com.example.air.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,10 +22,14 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
+
+  private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+
   private final UserRepository repository;
   private final TokenRepository tokenRepository;
   private final PasswordEncoder passwordEncoder;
@@ -39,20 +44,22 @@ public class AuthenticationService {
               .email(request.getEmail())
               .password(passwordEncoder.encode(request.getPassword()))
               .role(request.getRole())
+              .phoneNumber(request.getPhoneNumber())
+              .address(request.getAddress())
               .build();
 
-      var savedUser = repository.save(user);
-      var jwtToken = jwtService.generateToken(user);
-      var refreshToken = jwtService.generateRefreshToken(user);
-      saveUserToken(savedUser, jwtToken);
+      var savedUser = repository.save(user); // Save user first
+      var jwtToken = jwtService.generateToken(savedUser); // Generate token after saving user
+      var refreshToken = jwtService.generateRefreshToken(savedUser);
+
+      saveUserToken(savedUser, jwtToken); // Save token
 
       return AuthenticationResponse.builder()
               .accessToken(jwtToken)
               .refreshToken(refreshToken)
               .build();
     } catch (Exception e) {
-      // Log the error
-      System.err.println("Error occurred while registering user: " + e.getMessage());
+      logger.error("Error occurred while registering user: {}", e.getMessage());
       throw e; // or handle it appropriately
     }
   }
@@ -68,8 +75,10 @@ public class AuthenticationService {
             .orElseThrow();
     var jwtToken = jwtService.generateToken(user);
     var refreshToken = jwtService.generateRefreshToken(user);
+
     revokeAllUserTokens(user);
     saveUserToken(user, jwtToken);
+
     return AuthenticationResponse.builder()
             .accessToken(jwtToken)
             .refreshToken(refreshToken)
@@ -77,21 +86,38 @@ public class AuthenticationService {
   }
 
   private void saveUserToken(User user, String jwtToken) {
-    var token = Token.builder()
-            .user(user)
-            .token(jwtToken) // Ensure jwtToken is never null
-            .tokenType(TokenType.BEARER.name())
-            .expired(false)
-            .revoked(false)
-            .build();
-    tokenRepository.save(token);
-  }
+    int retryCount = 3;
+    boolean isSaved = false;
 
+    for (int i = 0; i < retryCount; i++) {
+      try {
+        var token = Token.builder()
+                .user(user)
+                .token(jwtToken)
+                .tokenType(TokenType.BEARER.name())
+                .expired(false)
+                .revoked(false)
+                .build();
+        tokenRepository.save(token);
+        isSaved = true;
+        break;
+      } catch (Exception e) {
+        // Log the exception and retry with a new token
+        logger.error("Error saving token, retrying... Attempt: {}", i + 1, e);
+        jwtToken = jwtService.generateToken(user);
+      }
+    }
+
+    if (!isSaved) {
+      throw new RuntimeException("Failed to save token after " + retryCount + " attempts");
+    }
+  }
 
   private void revokeAllUserTokens(User user) {
     var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
-    if (validUserTokens.isEmpty())
+    if (validUserTokens.isEmpty()) {
       return;
+    }
     validUserTokens.forEach(token -> {
       token.setExpired(true);
       token.setRevoked(true);
@@ -106,7 +132,7 @@ public class AuthenticationService {
     final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
     final String refreshToken;
     final String userEmail;
-    if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       return;
     }
     refreshToken = authHeader.substring(7);

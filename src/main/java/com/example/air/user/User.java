@@ -1,11 +1,11 @@
 package com.example.air.user;
 
 import com.example.air.token.Token;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.example.air.user.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -13,24 +13,28 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 @Document(collection = "users") // MongoDB collection name
 public class User implements UserDetails {
 
   @Id
-  private String id; // Use String for MongoDB IDs
+  private String id; // MongoDB uses String for IDs
   private String firstname;
   private String lastname;
+  @Indexed(unique = true)
   private String email;
+
   private String password;
-
-  private Role role;
-
+  private String address;
+  private Integer phoneNumber;
+  private Role role; // Assuming Role is an Enum
+  // Store token IDs instead of full Token objects
   private List<Token> tokens;
 
   @Override
@@ -66,5 +70,10 @@ public class User implements UserDetails {
   @Override
   public boolean isEnabled() {
     return true;
+  }
+
+  @Override
+  public String toString() {
+    return "User{id=" + id + ", firstname='" + firstname + "', lastname='" + lastname + "', email='" + email + "'}";
   }
 }

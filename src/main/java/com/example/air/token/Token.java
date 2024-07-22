@@ -6,8 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
 @Builder
@@ -17,17 +18,15 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 public class Token {
 
   @Id
-  private String id; // MongoDB uses String type for IDs
+  private String id;
 
-  @org.springframework.data.mongodb.core.index.Indexed(unique = true)
+  @Indexed(unique = true)
   private String token;
 
-  private String tokenType = TokenType.BEARER.name(); // Store token type as a string
-
+  private String tokenType;
   private boolean revoked;
-
   private boolean expired;
 
-  @DBRef(lazy = true)
-  private User user; // Reference to User entity
+  @DBRef
+  private User user;
 }

@@ -6,6 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+  private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
   private final JwtService jwtService;
   private final UserDetailsService userDetailsService;
   private final TokenRepository tokenRepository;
@@ -32,13 +36,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           @NonNull HttpServletResponse response,
           @NonNull FilterChain filterChain
   ) throws ServletException, IOException {
-    // Skip processing for authentication paths
-    if (request.getServletPath().startsWith("/auth")) {
+    // Skip authentication for paths starting with /api/v1/auth
+    if (request.getServletPath().startsWith("/api/v1/auth")) {
       filterChain.doFilter(request, response);
       return;
     }
 
-    // Extract JWT token from Authorization header
     final String authHeader = request.getHeader("Authorization");
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       filterChain.doFilter(request, response);
@@ -49,23 +52,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     final String userEmail = jwtService.extractUsername(jwt);
 
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+      try {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-      // Check if the token is valid
-      boolean isTokenValid = tokenRepository.findAllValidTokenByUser(userEmail)
-              .stream()
-              .anyMatch(t -> !t.isExpired() && !t.isRevoked() && t.getToken().equals(jwt));
+        boolean isTokenValid = tokenRepository.findAllValidTokenByUser(userEmail)
+                .stream()
+                .anyMatch(t -> !t.isExpired() && !t.isRevoked() && t.getToken().equals(jwt));
 
-      if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
-        );
-        authToken.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
-        );
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
+          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                  userDetails,
+                  null,
+                  userDetails.getAuthorities()
+          );
+          authToken.setDetails(
+                  new WebAuthenticationDetailsSource().buildDetails(request)
+          );
+          SecurityContextHolder.getContext().setAuthentication(authToken);
+        } else {
+          logger.warn("Invalid token: {} for user: {}", jwt, userEmail);
+        }
+      } catch (Exception e) {
+        logger.error("Error occurred while processing authentication for token: {}", jwt, e);
+      }
+    } else {
+      if (userEmail == null) {
+        logger.warn("User email is null for the provided token.");
+      } else {
+        logger.debug("Authentication already present for user: {}", userEmail);
       }
     }
 
