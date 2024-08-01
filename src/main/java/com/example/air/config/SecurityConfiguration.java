@@ -45,7 +45,14 @@ public class SecurityConfiguration {
             "/configuration/security",
             "/swagger-ui/**",
             "/webjars/**",
-            "/swagger-ui.html"};
+            "/swagger-ui.html",
+             "/frame1/**",
+             "/frame2/**",
+            "/websocket-frame1/**",
+    "ws://192.168.43.223:8080/websocket-frame1",
+            "/websocket-frame2/**",
+    "/logout/**",
+    "/api/v1/users/**"};
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;

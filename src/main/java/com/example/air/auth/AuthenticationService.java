@@ -36,35 +36,41 @@ public class AuthenticationService {
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
 
-  public AuthenticationResponse register(RegisterRequest request) {
-    try {
-      var user = User.builder()
-              .firstname(request.getFirstname())
-              .lastname(request.getLastname())
-              .email(request.getEmail())
-              .password(passwordEncoder.encode(request.getPassword()))
-              .role(request.getRole())
-              .phoneNumber(request.getPhoneNumber())
-              .address(request.getAddress())
-              .build();
+    public AuthenticationResponse register(RegisterRequest request) {
+        try {
+            var user = User.builder()
+                    .firstname(request.getFirstname())
+                    .lastname(request.getLastname())
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(request.getRole())
+                    .phoneNumber(request.getPhoneNumber())
+                    .address(request.getAddress())
+                    .build();
 
-      var savedUser = repository.save(user); // Save user first
-      var jwtToken = jwtService.generateToken(savedUser); // Generate token after saving user
-      var refreshToken = jwtService.generateRefreshToken(savedUser);
+            var savedUser = repository.save(user); // Save user first
+            var jwtToken = jwtService.generateToken(savedUser); // Generate token after saving user
+            var refreshToken = jwtService.generateRefreshToken(savedUser);
 
-      saveUserToken(savedUser, jwtToken); // Save token
+            if (jwtToken != null) {
+                saveUserToken(savedUser, jwtToken); // Then save token
+            } else {
+                logger.error("JWT token generation failed for user: {}", user.getEmail());
+                throw new RuntimeException("JWT token generation failed");
+            }
 
-      return AuthenticationResponse.builder()
-              .accessToken(jwtToken)
-              .refreshToken(refreshToken)
-              .build();
-    } catch (Exception e) {
-      logger.error("Error occurred while registering user: {}", e.getMessage());
-      throw e; // or handle it appropriately
+            return AuthenticationResponse.builder()
+                    .accessToken(jwtToken)
+                    .refreshToken(refreshToken)
+                    .build();
+        } catch (Exception e) {
+            logger.error("Error occurred while registering user: {}", e.getMessage());
+            throw e; // or handle it appropriately
+        }
     }
-  }
 
-  public AuthenticationResponse authenticate(AuthenticationRequest request) {
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
     authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
                     request.getEmail(),
@@ -85,12 +91,11 @@ public class AuthenticationService {
             .build();
   }
 
-  private void saveUserToken(User user, String jwtToken) {
-    int retryCount = 3;
-    boolean isSaved = false;
+    private void saveUserToken(User user, String jwtToken) {
+        if (jwtToken == null || jwtToken.isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
 
-    for (int i = 0; i < retryCount; i++) {
-      try {
         var token = Token.builder()
                 .user(user)
                 .token(jwtToken)
@@ -99,21 +104,10 @@ public class AuthenticationService {
                 .revoked(false)
                 .build();
         tokenRepository.save(token);
-        isSaved = true;
-        break;
-      } catch (Exception e) {
-        // Log the exception and retry with a new token
-        logger.error("Error saving token, retrying... Attempt: {}", i + 1, e);
-        jwtToken = jwtService.generateToken(user);
-      }
     }
 
-    if (!isSaved) {
-      throw new RuntimeException("Failed to save token after " + retryCount + " attempts");
-    }
-  }
 
-  private void revokeAllUserTokens(User user) {
+    private void revokeAllUserTokens(User user) {
     var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
     if (validUserTokens.isEmpty()) {
       return;
